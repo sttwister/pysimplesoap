@@ -89,13 +89,13 @@ class SoapClient(object):
             # parse the wsdl url, strip the scheme and filename
             url_scheme, netloc, path, query, fragment = urlsplit(wsdl)
             wsdl_basedir = os.path.dirname(netloc + path)
-            
+
         self.wsdl_basedir = wsdl_basedir
-        
+
         # shortcut to print all debugging info and sent / received xml messages
         if trace:
             logging.basicConfig(level=logging.DEBUG)
-        
+
         if not soap_ns and not ns:
             self.__soap_ns = 'soap'  # 1.1
         elif not soap_ns and ns:
@@ -172,7 +172,7 @@ class SoapClient(object):
                                 ns=self.__ns,               # method ns prefix
                                 soap_ns=self.__soap_ns,     # soap prefix & uri
                                 soap_uri=soap_namespaces[self.__soap_ns])
-        request = SimpleXMLElement(xml, namespace=self.__ns and self.namespace, 
+        request = SimpleXMLElement(xml, namespace=self.__ns and self.namespace,
                                         prefix=self.__ns)
 
         request_headers = kwargs.pop('headers', None)
@@ -298,10 +298,10 @@ class SoapClient(object):
         header = operation.get('header')
         if 'action' in operation:
             self.action = operation['action']
-        
+
         if 'namespace' in operation:
             self.namespace = operation['namespace'] or ''
-            self.qualified = operation['qualified']            
+            self.qualified = operation['qualified']
 
         # construct header and parameters
         if header:
@@ -314,15 +314,15 @@ class SoapClient(object):
         resp = response('Body', ns=soap_uri).children().unmarshall(output)
         return resp and list(resp.values())[0]  # pass Response tag children
 
-    def wsdl_call_get_params(self, method, input, *args, **kwargs):
+    def wsdl_call_get_params(self, method, original_input, *args, **kwargs):
         """Build params from input and args/kwargs"""
         params = inputname = inputargs = None
         all_args = {}
-        if input:
-            inputname = list(input.keys())[0]
-            inputargs = input[inputname]
+        if original_input:
+            inputname = list(original_input.keys())[0]
+            inputargs = original_input[inputname]
 
-        if input and args:
+        if original_input and args:
             # convert positional parameters to named parameters:
             d = {}
             for idx, arg in enumerate(args):
@@ -336,13 +336,13 @@ class SoapClient(object):
                     d[key] = arg
             all_args.update({inputname: d})
 
-        if input and (kwargs or all_args):
+        if original_input and (kwargs or all_args):
             if kwargs:
                 all_args.update({inputname: kwargs})
-            valid, errors, warnings = self.wsdl_validate_params(input, all_args)
+            valid, errors, warnings = self.wsdl_validate_params(original_input, all_args)
             if not valid:
                 raise ValueError('Invalid Args Structure. Errors: %s' % errors)
-            params = list(sort_dict(input, all_args).values())[0].items()
+            params = list(sort_dict(original_input, all_args).values())[0].items()
             # TODO: check style and document attributes
             if self.__soap_server in ('axis', ):
                 # use the operation name
@@ -350,7 +350,7 @@ class SoapClient(object):
             else:
                 # use the message (element) name
                 method = inputname
-        #elif not input:
+        #elif not original_input:
             #TODO: no message! (see wsmtxca.dummy)
         else:
             params = kwargs and kwargs.items()
@@ -358,7 +358,7 @@ class SoapClient(object):
         return (method, params)
 
     def wsdl_validate_params(self, struct, value):
-        """Validate the arguments (actual values) for the parameters structure. 
+        """Validate the arguments (actual values) for the parameters structure.
            Fail for any invalid arguments or type mismatches."""
         errors = []
         warnings = []
@@ -374,7 +374,7 @@ class SoapClient(object):
 
         if struct == str:
             struct = unicode        # fix for py2 vs py3 string handling
-        
+
         if not isinstance(struct, (list, dict, tuple)) and struct in TYPE_MAP.keys():
             if not type(value) == struct:
                 try:
@@ -591,7 +591,7 @@ class SoapClient(object):
                     d['action'] = action
 
         # check axis2 namespace at schema types attributes (europa.eu checkVat)
-        if "http://xml.apache.org/xml-soap" in dict(wsdl[:]).values(): 
+        if "http://xml.apache.org/xml-soap" in dict(wsdl[:]).values():
             # get the sub-namespace in the first schema element (see issue 8)
             if wsdl('types', error=False):
                 schema = wsdl.types('schema', ns=xsd_uri)
@@ -599,16 +599,16 @@ class SoapClient(object):
                 self.namespace = attrs.get('targetNamespace', self.namespace)
             if not self.namespace or self.namespace == "urn:DefaultNamespace":
                 self.namespace = wsdl['targetNamespace'] or self.namespace
-                
+
         imported_schemas = {}
         global_namespaces = {None: self.namespace}
 
         # process current wsdl schema (if any):
         if wsdl('types', error=False):
             for schema in wsdl.types('schema', ns=xsd_uri):
-                preprocess_schema(schema, imported_schemas, elements, xsd_uri, 
-                                  self.__soap_server, self.http, cache, 
-                                  force_download, self.wsdl_basedir, 
+                preprocess_schema(schema, imported_schemas, elements, xsd_uri,
+                                  self.__soap_server, self.http, cache,
+                                  force_download, self.wsdl_basedir,
                                   global_namespaces=global_namespaces)
 
         # 2nd phase: alias, postdefined elements, extend bases, convert lists
