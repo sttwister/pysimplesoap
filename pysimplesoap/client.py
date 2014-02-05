@@ -306,7 +306,7 @@ class SoapClient(object):
         # construct header and parameters
         if header:
             self.__call_headers = sort_dict(header, self.__headers)
-        method, params = self.wsdl_call_get_params(method, input, *args, **kwargs)
+        _, params = self.wsdl_call_get_params(method, input, *args, **kwargs)
 
         # call remote procedure
         response = self.call(method, *params)
