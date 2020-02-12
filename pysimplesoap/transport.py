@@ -61,7 +61,7 @@ class TransportBase:
 #
 try:
     import httplib2
-    if sys.version > '3' and httplib2.__version__ <= "0.7.7":
+    if sys.version > '3' and tuple(int(x) for x in httplib2.__version__.split('.')) <= (0, 7, 7):
         import http.client
         # httplib2 workaround: check_hostname needs a SSL context with either 
         #                      CERT_OPTIONAL or CERT_REQUIRED
