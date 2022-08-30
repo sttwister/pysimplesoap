@@ -210,6 +210,50 @@ else:
     _http_facilities.setdefault('timeout', []).append('pycurl')
 
 
+#
+# requests support.
+# experimental: used for proxy support with authentication
+#
+try:
+    import requests
+
+    class RequestsTransport(TransportBase):
+        _wrapper_version = requests.__version__
+        _wrapper_name = 'requests'
+
+        def __init__(self, timeout, proxy=None, cacert=None, sessions=False):
+            self.proxy = proxy or {}
+            self.proxy_url = None
+
+            if proxy:
+                self.proxy_url = "%s:%s@%s:%s" % (
+                    self.proxy['proxy_user'],
+                    self.proxy['proxy_pass'],
+                    self.proxy['proxy_host'],
+                    self.proxy['proxy_port'],
+                )
+                log.info("using proxy %s" % proxy)
+
+        def request(self, url, method, body, headers):
+            http_callable = getattr(requests, method.lower())
+
+            proxies = {}
+            if self.proxy_url:
+                proxies = {
+                    'http': self.proxy_url,
+                    'https': self.proxy_url,
+                }
+
+            response = http_callable(url, headers=headers, data=body, proxies=proxies)
+
+            return response, response.content
+
+    _http_connectors['requests'] = RequestsTransport
+    _http_facilities.setdefault('proxy', []).append('requests')
+except ImportError:
+    pass
+
+
 class DummyTransport:
     """Testing class to load a xml response"""
 
