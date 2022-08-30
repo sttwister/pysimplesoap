@@ -246,7 +246,7 @@ try:
 
             response = http_callable(url, headers=headers, data=body, proxies=proxies)
 
-            return response, response.content
+            return {}, response.content
 
     _http_connectors['requests'] = RequestsTransport
     _http_facilities.setdefault('proxy', []).append('requests')
