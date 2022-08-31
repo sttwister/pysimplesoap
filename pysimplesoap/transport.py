@@ -222,26 +222,22 @@ try:
         _wrapper_name = 'requests'
 
         def __init__(self, timeout, proxy=None, cacert=None, sessions=False):
-            self.proxy = proxy or {}
-            self.proxy_url = None
+            """
+            :param proxy: The full url for the proxy server, including the scheme. E.g. http://user:pass@server.com:port
+            """
+            self.proxy = proxy
 
             if proxy:
-                self.proxy_url = "%s:%s@%s:%s" % (
-                    self.proxy['proxy_user'],
-                    self.proxy['proxy_pass'],
-                    self.proxy['proxy_host'],
-                    self.proxy['proxy_port'],
-                )
                 log.info("using proxy %s" % proxy)
 
         def request(self, url, method, body, headers):
             http_callable = getattr(requests, method.lower())
 
             proxies = {}
-            if self.proxy_url:
+            if self.proxy:
                 proxies = {
-                    'http': self.proxy_url,
-                    'https': self.proxy_url,
+                    'http': self.proxy,
+                    'https': self.proxy,
                 }
 
             response = http_callable(url, headers=headers, data=body, proxies=proxies)
